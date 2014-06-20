@@ -1,0 +1,27 @@
+---
+title: "Generate Major City Long/Lat"
+author: "Jeff Erickson"
+date: "Wednesday, June 18, 2014"
+output: html_document
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(ggmap)
+```
+
+### Import list of major US cities
+#### (source: http://en.wikipedia.org/wiki/List_of_primary_statistical_areas_of_the_United_States)
+```{r}
+maj.city <- read.csv("datasets/maj.city.csv", header=TRUE, as.is=TRUE)
+```
+
+### Geocode the cities (retrieve long/lat)
+```{r}
+maj.city.long.lat <- cbind(maj.city, geocode(maj.city$city))
+names(maj.city.long.lat) <- c("rank", "city", "long", "lat")
+```
+
+### Export as new CSV
+```{r}
+write.table(maj.city.long.lat, file="datasets/maj.city.long.lat.csv", row.names=FALSE, col.names=TRUE, sep=",")
+```
