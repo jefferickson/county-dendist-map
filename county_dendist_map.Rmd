@@ -1,0 +1,34 @@
+---
+title: "County Density/Distance Map"
+author: "Jeff Erickson"
+date: "Tuesday, June 17, 2014"
+output: html_document
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(rgdal)
+library(ggplot2)
+library(ggmap)
+```
+
+```{r, echo=FALSE, include=FALSE}
+county.shapes <- readOGR(dsn="datasets", "gz_2010_us_050_00_500k")
+
+county.pop.center <- read.csv("datasets/CenPop2010_Mean_CO.txt", header=TRUE)
+
+county.density <- read.csv("datasets/DEC_10_SF1_GCTPH1.CY07_with_ann.csv", header=TRUE)
+
+maj.city.long.lat <- read.csv("datasets/maj.city.long.lat.csv", header=TRUE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+#We only want counties, not census tracts
+county.density <- county.density[which(county.density$GEO.id2 == county.density$GCT_STUB.target.geo.id2), ]
+
+#Create key that is used to merge
+county.pop.center$GEO_ID <- paste("0500000US", formatC(county.pop.center$STATEFP, width=2, flag="0"), formatC(county.pop.center$COUNTYFP, width=3, flag="0"), sep="")
+
+#Merge all data back onto the shape file map
+county.shapes@data <- merge(county.shapes@data, county.density, by.x="GEO_ID", by.y="GEO.id", all.x=TRUE)
+county.shapes@data <- merge(county.shapes@data, county.pop.center, by="GEO_ID", all.x=TRUE)
+```
