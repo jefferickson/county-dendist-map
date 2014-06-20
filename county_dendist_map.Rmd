@@ -5,30 +5,75 @@ date: "Tuesday, June 17, 2014"
 output: html_document
 ---
 
-```{r, echo=FALSE, include=FALSE}
+### LOAD REQUIRED LIBRARIES
+
+```{r}
 library(rgdal)
-library(ggplot2)
 library(ggmap)
 ```
 
-```{r, echo=FALSE, include=FALSE}
+### IMPORT DATA
+
+```{r}
+#County Shapes from US Census
 county.shapes <- readOGR(dsn="datasets", "gz_2010_us_050_00_500k")
 
+#County population centroids from US Census
 county.pop.center <- read.csv("datasets/CenPop2010_Mean_CO.txt", header=TRUE)
 
-county.density <- read.csv("datasets/DEC_10_SF1_GCTPH1.CY07_with_ann.csv", header=TRUE)
+#County population density information from US Census
+county.density <- read.csv("datasets/DEC_10_SF1_GCTPH1.CY07_with_ann.csv", header=TRUE, as.is=TRUE)
 
+#Major city (primary statistical areas) from gen.maj.city.long.lat.Rmd
 maj.city.long.lat <- read.csv("datasets/maj.city.long.lat.csv", header=TRUE)
 ```
 
-```{r, echo=FALSE, include=FALSE}
+### HELPER FUNCTIONS
+
+```{r}
+euclid.dist <- function(x) {
+  return(sqrt((x[1]-x[3])^2 + (x[2]-x[4])^2))
+}
+```
+
+### DATA TRANSFORMATIONS
+
+```{r}
 #We only want counties, not census tracts
 county.density <- county.density[which(county.density$GEO.id2 == county.density$GCT_STUB.target.geo.id2), ]
 
 #Create key that is used to merge
 county.pop.center$GEO_ID <- paste("0500000US", formatC(county.pop.center$STATEFP, width=2, flag="0"), formatC(county.pop.center$COUNTYFP, width=3, flag="0"), sep="")
 
-#Merge all data back onto the shape file map
-county.shapes@data <- merge(county.shapes@data, county.density, by.x="GEO_ID", by.y="GEO.id", all.x=TRUE)
-county.shapes@data <- merge(county.shapes@data, county.pop.center, by="GEO_ID", all.x=TRUE)
+#For now, only the lower 48 states
+county.density <- county.density[which(! (substr(county.density$GEO.id, 10, 11) %in% c("02", "52", "15", "72"))), ] #remove AK, HI, PR (2 codes)
+county.pop.center <- county.pop.center[which(! (substr(county.pop.center$GEO_ID, 10, 11) %in% c("02", "52", "15", "72"))), ] #remove AK, HI, PR (2 codes)
+
+#Convert field(s) to numeric
+county.density$SUBHD0401 <- as.numeric(county.density$SUBHD0401)
+```
+
+### CALCULATE DISTANCES AND "DEN-DISTS"
+
+```{r}
+#Create a list of all unique combinations of counties and the major cities
+county.city.list.long <- merge(county.pop.center$GEO_ID, maj.city.long.lat$id, all.x=TRUE, all.y=TRUE)
+names(county.city.list.long) <- c("county.geo.id", "city.id")
+
+#For each combination, calculate the distance
+county.city.list.long$dist <- apply(county.city.list.long[c("county.geo.id", "city.id")], 1, function(x) {
+  dist <- euclid.dist(as.numeric(
+    c(
+      county.pop.center[which(county.pop.center$GEO_ID == x[1]), c("LATITUDE", "LONGITUDE")],
+      maj.city.long.lat[which(maj.city.long.lat$id == x[2]), c("lat", "long")]
+    )
+  ))
+  return(dist)
+})
+
+#Merge on the county densities
+county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id", "SUBHD0401")], by.x="county.geo.id", by.y="GEO.id", all.x=TRUE)
+
+#Calculate "dist-dens"
+county.city.list.long$den.dist <- county.city.list.long$SUBHD0401 / county.city.list.long$dist
 ```

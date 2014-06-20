@@ -18,7 +18,7 @@ maj.city <- read.csv("datasets/maj.city.csv", header=TRUE, as.is=TRUE)
 ### Geocode the cities (retrieve long/lat)
 ```{r}
 maj.city.long.lat <- cbind(maj.city, geocode(maj.city$city))
-names(maj.city.long.lat) <- c("rank", "city", "long", "lat")
+names(maj.city.long.lat) <- c("id", "rank", "city", "long", "lat")
 ```
 
 ### Export as new CSV
