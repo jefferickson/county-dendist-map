@@ -57,6 +57,25 @@ haversine.dist <- function(x) {
   d <- earth.r * c
   return(d)
 }
+
+google.driving.dist <- function(x) {
+  #Get Google driving distance
+  #http://stackoverflow.com/questions/16863018/getting-driving-distance-between-two-points-lat-lon-using-r-and-google-map-ap
+  #Has the following limitations:
+  #100 elements per query.
+  #100 elements per 10 seconds.
+  #2500 elements per 24 hour period.
+  #arg: c(lat1, long1, lat2, long2)
+  library(XML)
+  library(RCurl)
+  origin <- paste(x[1], x[2], sep=",")
+  dest <- paste(x[3], x[4], sep=",")
+  url <- paste0('http://maps.googleapis.com/maps/api/distancematrix/xml?origins=', origin, '&destinations=', dest, '&mode=driving&sensor=false')
+  xml.resp <- xmlParse(getURL(url))
+  d.lab <- xmlValue(xmlChildren(xpathApply(xml.resp, "//distance")[[1]])$text)
+  d <- as.numeric(sub(" km", "", d.lab))
+  return(d)
+}
 ```
 
 ### DATA TRANSFORMATIONS
