@@ -10,6 +10,8 @@ output: html_document
 ```{r}
 library(rgdal)
 library(ggmap)
+library(ggplot2)
+library(rgeos)
 ```
 
 ### IMPORT DATA
@@ -120,10 +122,29 @@ county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id",
 county.city.list.long$den.dist <- county.city.list.long$SUBHD0401 / county.city.list.long$dist
 
 #Dedupe based on shortest distance
-county.city.list.shortest.long <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
+county.city.list.shortest <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
   return(x[which.min(x$dist), ])
 }))
 
 #Cap den-dist at 1 for now (may need to play with this threshold later)
-county.city.list.shortest.long$den.dist.cap <- ifelse(county.city.list.shortest.long$den.dist > 1, 1, county.city.list.shortest.long$den.dist)
+county.city.list.shortest$den.dist.cap <- ifelse(county.city.list.shortest$den.dist > 1, 1, county.city.list.shortest$den.dist)
+```
+
+### MERGE DEN-DIST DATA WITH MAPPING INFO
+
+```{r}
+#Fortify the shapefile and use the FIPS codes as id
+county.shapes.f <- fortify(county.shapes, region="GEO_ID")
+
+#Merge on our demo data
+county.shapes.f.dendist <- merge(county.shapes.f, county.city.list.shortest, by.x="id", by.y="county.geo.id")
+```
+
+### MAP IT!
+
+```{r}
+ggplot(county.shapes.f.dendist[order(county.shapes.f.dendist$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
+  geom_polygon(aes(fill=den.dist.cap), colour="black") +
+  coord_equal() +
+  scale_fill_continuous(low="white", high="blue")
 ```
