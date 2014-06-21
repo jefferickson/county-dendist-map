@@ -31,8 +31,31 @@ maj.city.long.lat <- read.csv("datasets/maj.city.long.lat.csv", header=TRUE)
 ### HELPER FUNCTIONS
 
 ```{r}
-euclid.dist <- function(x) {
+deg.2.rad <- function(x) { #Convert vector from degrees to radians
+  return(sapply(x, function(deg) {
+    return(deg * (pi/180))
+  }))
+}
+
+euclid.dist <- function(x) { #Simple Euclidean distance
+  #arg: c(lat1, long1, lat2, long2)
   return(sqrt((x[1]-x[3])^2 + (x[2]-x[4])^2))
+}
+
+haversine.dist <- function(x) { 
+  #Implementation of the haversine formula
+  #http://en.wikipedia.org/wiki/Haversine_formula
+  #http://stackoverflow.com/questions/27928/how-do-i-calculate-distance-between-two-latitude-longitude-points
+  #arg: c(lat1, long1, lat2, long2)
+  coords <- deg.2.rad(x)
+  earth.r <- 6371 #earth radius in km
+  d.long.rad <- coords[2] - coords[4]
+  d.lat.rad <- coords[1] - coords[3]
+
+  a <- sin(d.lat.rad/2)^2 + cos(coords[1]) * cos(coords[3]) * sin(d.long.rad/2)^2
+  c <- 2 * atan2(sqrt(a), sqrt(1 - a))
+  d <- earth.r * c
+  return(d)
 }
 ```
 
@@ -62,7 +85,7 @@ names(county.city.list.long) <- c("county.geo.id", "city.id")
 
 #For each combination, calculate the distance
 county.city.list.long$dist <- apply(county.city.list.long[c("county.geo.id", "city.id")], 1, function(x) {
-  dist <- euclid.dist(as.numeric(
+  dist <- haversine.dist(as.numeric(
     c(
       county.pop.center[which(county.pop.center$GEO_ID == x[1]), c("LATITUDE", "LONGITUDE")],
       maj.city.long.lat[which(maj.city.long.lat$id == x[2]), c("lat", "long")]
@@ -76,4 +99,12 @@ county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id",
 
 #Calculate "dist-dens"
 county.city.list.long$den.dist <- county.city.list.long$SUBHD0401 / county.city.list.long$dist
+
+#Dedupe based on shortest distance
+county.city.list.shortest.long <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
+  return(x[which.min(x$dist), ])
+}))
+
+#Cap den-dist at 1 for now (may need to play with this threshold later)
+county.city.list.shortest.long$den.dist.cap <- ifelse(county.city.list.shortest.long$den.dist > 1, 1, county.city.list.shortest.long$den.dist)
 ```
