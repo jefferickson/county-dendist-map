@@ -78,6 +78,19 @@ google.driving.dist <- function(x) {
   d <- as.numeric(sub(" km", "", d.lab))
   return(d)
 }
+
+z.score <- function(x) { #Calc z-scores
+  #arg: a vector of values to z-score
+  return((x - mean(x)) / sd(x))
+}
+
+link.func.unwgted.avg <- function(x, y) { #Unweighted average of each argument (row-by-row), then scaled to [0,1]
+  #arg: two vectors of numeric to be averaged and scaled
+  index.unscaled <- apply(data.frame(x, y), 1, function(x) { return(mean(x)) })
+  index.shifted <- index.unscaled - min(index.unscaled)
+  index.scaled <- index.shifted / max(index.shifted)
+  return(index.scaled)
+}
 ```
 
 ### DATA TRANSFORMATIONS
@@ -97,7 +110,7 @@ county.pop.center <- county.pop.center[which(! (substr(county.pop.center$GEO_ID,
 county.density$SUBHD0401 <- as.numeric(county.density$SUBHD0401)
 ```
 
-### CALCULATE DISTANCES AND "DEN-DISTS"
+### CALCULATE DISTANCES AND DEN-DIST INDEX
 
 ```{r}
 #Create a list of all unique combinations of counties and the major cities
@@ -118,16 +131,23 @@ county.city.list.long$dist <- apply(county.city.list.long[c("county.geo.id", "ci
 #Merge on the county densities
 county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id", "SUBHD0401")], by.x="county.geo.id", by.y="GEO.id", all.x=TRUE)
 
-#Calculate "dist-dens"
-county.city.list.long$den.dist <- county.city.list.long$SUBHD0401 / county.city.list.long$dist
-
 #Dedupe based on shortest distance
 county.city.list.shortest <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
   return(x[which.min(x$dist), ])
 }))
 
-#Cap den-dist at 1 for now (may need to play with this threshold later)
-county.city.list.shortest$den.dist.cap <- ifelse(county.city.list.shortest$den.dist > 1, 1, county.city.list.shortest$den.dist)
+#transform density with log
+county.city.list.shortest$den.log <- log(county.city.list.shortest$SUBHD0401)
+
+#let's "flip" the distances so that high values of both density and "distance" mean more urban than rural
+county.city.list.shortest$dist.flip <- -(county.city.list.shortest$dist - (max(county.city.list.shortest$dist) + 1))
+
+#z-score both transform of density and distance-flip
+county.city.list.shortest$den.log.z <- z.score(county.city.list.shortest$den.log)
+county.city.list.shortest$dist.flip.z <- z.score(county.city.list.shortest$dist.flip)
+
+#create the den-dist index
+county.city.list.shortest$den.dist.index <- link.func.unwgted.avg(county.city.list.shortest$den.log.z, county.city.list.shortest$dist.flip.z)
 ```
 
 ### MERGE DEN-DIST DATA WITH MAPPING INFO
@@ -144,7 +164,7 @@ county.shapes.f.dendist <- merge(county.shapes.f, county.city.list.shortest, by.
 
 ```{r}
 ggplot(county.shapes.f.dendist[order(county.shapes.f.dendist$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
-  geom_polygon(aes(fill=den.dist.cap), colour="black") +
+  geom_polygon(aes(fill=den.dist.index), colour="black") +
   coord_equal() +
   scale_fill_continuous(low="white", high="blue")
 ```
