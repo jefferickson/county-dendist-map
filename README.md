@@ -1,6 +1,6 @@
 ## County Density/Distance/Population Map
 
-#### Author: Jeff Erickson <jeff@erick.so>
+#### Author: Jeff Erickson `<jeff@erick.so>`
 #### Date: 2014-06-22
 
 ### Motivation
@@ -17,13 +17,13 @@ In addition, I've wanted to try a mapping project in R for sometime, so this als
 
 For the initial version, I decided to use a ratio of county density and distance to closest primary statistical area with population over 2 million within the United States. While the map produced results similar to what I expected, it was too heavily weighted by the county densities creating a skewed distribution of the ratio and a few outlier counties that would normally not be thought of as "urban."
 
-![Version 1 of Map](https://github.com/jefferickson/county-dendist-map/blob/master/map_output/map.v1.png)
+![Version 1 of Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v1.png)
 
 #### Version 2
 
 In doing some research for Version 2, I came across a paper by Brigitte S. Waldorf defining the Index of Relative Rurality (link below). With that as background, I decided to modify my measure to be a simple average of the normalized distance to the closest primary staistical area (though mirrored so that higher meant more urban) and the normalized logarithm of the density. This produced a much "smoother" map than Version 1 and eliminated the outliers mentioned before.
 
-![Version 2 of Map](https://github.com/jefferickson/county-dendist-map/blob/master/map_output/map.v2.png)
+![Version 2 of Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v2.png)
 
 #### Version 3
 
@@ -31,8 +31,8 @@ While Version 2 was better than Version 1, I still felt that there wasn't enough
 
 To improve upon this, I used Waldorf's method of including the normalized logarithm of county population in addition to the other two measures from Version 2. This lead to an improved measure which continues to be "smooth," doesn't have as many outliers, and still can differentiate in places like Montana. 
 
-![Version 3 of Map](https://github.com/jefferickson/county-dendist-map/blob/master/map_output/map.v3.png)  
-[Large PDF](https://github.com/jefferickson/county-dendist-map/blog/master/map_output/map.v3.pdf)
+![Version 3 of Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v3.png)  
+[Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v3.pdf)
 
 ### References
 
