@@ -1,5 +1,5 @@
 ---
-title: "County Density/Distance Map"
+title: "County Density/Distance/Population Map"
 author: "Jeff Erickson"
 date: "Tuesday, June 17, 2014"
 output: html_document
@@ -84,9 +84,9 @@ z.score <- function(x) { #Calc z-scores
   return((x - mean(x)) / sd(x))
 }
 
-link.func.unwgted.avg <- function(x, y) { #Unweighted average of each argument (row-by-row), then scaled to [0,1]
-  #arg: two vectors of numeric to be averaged and scaled
-  index.unscaled <- apply(data.frame(x, y), 1, function(x) { return(mean(x)) })
+link.func.unwgted.avg <- function(x) { #Unweighted average of each argument (row-by-row), then scaled to [0,1]
+  #arg: data.frame of numerics to be averaged and scaled
+  index.unscaled <- apply(x, 1, function(x) { return(mean(x)) })
   index.shifted <- index.unscaled - min(index.unscaled)
   index.scaled <- index.shifted / max(index.shifted)
   return(index.scaled)
@@ -106,11 +106,12 @@ county.pop.center$GEO_ID <- paste("0500000US", formatC(county.pop.center$STATEFP
 county.density <- county.density[which(! (substr(county.density$GEO.id, 10, 11) %in% c("02", "52", "15", "72"))), ] #remove AK, HI, PR (2 codes)
 county.pop.center <- county.pop.center[which(! (substr(county.pop.center$GEO_ID, 10, 11) %in% c("02", "52", "15", "72"))), ] #remove AK, HI, PR (2 codes)
 
-#Convert field(s) to numeric
+#Convert field(s) to numeric. Remove (r[number]) pattern found in some HD01 values.
 county.density$SUBHD0401 <- as.numeric(county.density$SUBHD0401)
+county.density$HD01 <- as.numeric(gsub("\\(r[0-9]*\\)", "", county.density$HD01))
 ```
 
-### CALCULATE DISTANCES AND DEN-DIST INDEX
+### CALCULATE DISTANCES AND DEN-DIST-POP INDEX
 
 ```{r}
 #Create a list of all unique combinations of counties and the major cities
@@ -128,43 +129,50 @@ county.city.list.long$dist <- apply(county.city.list.long[c("county.geo.id", "ci
   return(dist)
 })
 
-#Merge on the county densities
-county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id", "SUBHD0401")], by.x="county.geo.id", by.y="GEO.id", all.x=TRUE)
+#Merge on the county densities/populations
+county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id", "SUBHD0401", "HD01")], by.x="county.geo.id", by.y="GEO.id", all.x=TRUE)
 
 #Dedupe based on shortest distance
 county.city.list.shortest <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
   return(x[which.min(x$dist), ])
 }))
 
-#transform density with log
+#transform density and population with log
 county.city.list.shortest$den.log <- log(county.city.list.shortest$SUBHD0401)
+county.city.list.shortest$pop.log <- log(county.city.list.shortest$HD01)
 
 #let's "flip" the distances so that high values of both density and "distance" mean more urban than rural
 county.city.list.shortest$dist.flip <- -(county.city.list.shortest$dist - (max(county.city.list.shortest$dist) + 1))
 
-#z-score both transform of density and distance-flip
+#z-score transforms of density and population and distance-flip
 county.city.list.shortest$den.log.z <- z.score(county.city.list.shortest$den.log)
+county.city.list.shortest$pop.log.z <- z.score(county.city.list.shortest$pop.log)
 county.city.list.shortest$dist.flip.z <- z.score(county.city.list.shortest$dist.flip)
 
-#create the den-dist index
-county.city.list.shortest$den.dist.index <- link.func.unwgted.avg(county.city.list.shortest$den.log.z, county.city.list.shortest$dist.flip.z)
+#create the den-dist-pop index
+county.city.list.shortest$den.dist.pop.index <- link.func.unwgted.avg(county.city.list.shortest[c("den.log.z", "pop.log.z", "dist.flip.z")])
 ```
 
-### MERGE DEN-DIST DATA WITH MAPPING INFO
+### MERGE DEN-DIST-POP DATA WITH MAPPING INFO
 
 ```{r}
 #Fortify the shapefile and use the FIPS codes as id
 county.shapes.f <- fortify(county.shapes, region="GEO_ID")
 
 #Merge on our demo data
-county.shapes.f.dendist <- merge(county.shapes.f, county.city.list.shortest, by.x="id", by.y="county.geo.id")
+county.shapes.f.dendistpop <- merge(county.shapes.f, county.city.list.shortest, by.x="id", by.y="county.geo.id")
+```
+
+### GRAPH THE DENSITY OF THE INDEX
+```{r}
+ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density()
 ```
 
 ### MAP IT!
 
 ```{r}
-ggplot(county.shapes.f.dendist[order(county.shapes.f.dendist$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
-  geom_polygon(aes(fill=den.dist.index), colour="black") +
+ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
+  geom_polygon(aes(fill=den.dist.pop.index), colour="black") +
   coord_equal() +
   scale_fill_continuous(low="white", high="blue")
 ```
