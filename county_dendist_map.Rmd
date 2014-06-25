@@ -182,6 +182,7 @@ ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], ae
 
 ```{r}
 missoula.fips <- "0500000US30063"
+westchester.fips <- "0500000US36119"
   
 county.w.index <- merge(county.city.list.shortest[c("county.geo.id", "den.dist.pop.index")], county.density[c("GEO.id", "GEO.display.label")], by="county.geo.id", by.y="GEO.id")
 ```
@@ -190,6 +191,8 @@ county.w.index <- merge(county.city.list.shortest[c("county.geo.id", "den.dist.p
 ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density() + 
   geom_vline(xintercept=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)], linetype="longdash", colour="red") + 
   geom_text(x=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)] + 0.02, y=1, label="MISSOULA COUNTY, MT", colour="red", angle=90) +
+  geom_vline(xintercept=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == westchester.fips)], linetype="longdash", colour="red") +
+  geom_text(x=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == westchester.fips)] + 0.02, y=1.1, label="WESTCHESTER COUNTY, NY", colour="red", angle=90) +
   labs(title="Density: Den-Dist-Pop Index")
 ```
 
