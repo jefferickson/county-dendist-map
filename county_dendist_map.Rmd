@@ -12,6 +12,7 @@ library(rgdal)
 library(ggmap)
 library(ggplot2)
 library(rgeos)
+library(knitr)
 ```
 
 ### IMPORT DATA
@@ -175,4 +176,27 @@ ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], ae
   geom_polygon(aes(fill=den.dist.pop.index), colour="black") +
   coord_equal() +
   scale_fill_continuous(low="white", high="blue")
+```
+
+### CONCLUSIONS
+
+```{r}
+missoula.fips <- "0500000US30063"
+  
+county.w.index <- merge(county.city.list.shortest[c("county.geo.id", "den.dist.pop.index")], county.density[c("GEO.id", "GEO.display.label")], by="county.geo.id", by.y="GEO.id")
+```
+
+```{r}
+ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density() + 
+  geom_vline(xintercept=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)], linetype="longdash", colour="red") + 
+  geom_text(x=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)] + 0.02, y=1, label="MISSOULA COUNTY, MT", colour="red", angle=90) +
+  labs(title="Density: Den-Dist-Pop Index")
+```
+
+```{r}
+kable(head(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="markdown", row.names=FALSE)
+```
+
+```{r}
+kable(tail(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="markdown", row.names=FALSE)
 ```
