@@ -40,7 +40,7 @@ Here is the density curve of the index itself:
 
 ![Index Density](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/index.density.png)
 
-Missoula County is below the national mean (0.53) at 0.44.
+Missoula County is below the national mean (0.53) at 0.44, and well below Westchester County (home of White Plains).
 
 The most rural counties by this metric are:
 
@@ -64,7 +64,11 @@ And the least rural counties are:
 |0500000US36047 |             0.9956|Kings County, New York         |
 |0500000US36061 |             1.0000|New York County, New York      |
 
-Interesting to note is that 4 of the 6 most rural counties are in eastern Montana, and 4 of the 6 least rural counties are in New York City (4 of the 5 boroughs).
+Interesting to note is that 4 of the 6 most rural counties are in eastern Montana, and 4 of the 6 least rural counties are in New York City (4 of the 5 boroughs). The metric was able to successfully differentiate between Staten Island (the borough that didn't make the cut) and the 2nd and 3rd largest cities in the country.
+
+I'll end with a map showing which counties are more and less rural than Missoula County:
+
+![Index relative to Missoula County](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.rel.missoula.png)
 
 ### References
 

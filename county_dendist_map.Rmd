@@ -31,9 +31,12 @@ county.density <- read.csv("datasets/DEC_10_SF1_GCTPH1.CY07_with_ann.csv", heade
 maj.city.long.lat <- read.csv("datasets/maj.city.long.lat.csv", header=TRUE)
 ```
 
-### HELPER FUNCTIONS
+### HELPER FUNCTIONS/DEFINITIONS
 
 ```{r}
+missoula.fips <- "0500000US30063"
+westchester.fips <- "0500000US36119"
+
 deg.2.rad <- function(x) { #Convert vector from degrees to radians
   return(sapply(x, function(deg) {
     return(deg * (pi/180))
@@ -152,6 +155,20 @@ county.city.list.shortest$dist.flip.z <- z.score(county.city.list.shortest$dist.
 
 #create the den-dist-pop index
 county.city.list.shortest$den.dist.pop.index <- link.func.unwgted.avg(county.city.list.shortest[c("den.log.z", "pop.log.z", "dist.flip.z")])
+
+#create a {-1, 0, 1} flag for index value relative to Missoula County
+county.city.list.shortest$rel.missoula <- apply(county.city.list.shortest, 1, function(x) {
+  if (x["county.geo.id"] == missoula.fips) {
+    return(0)
+  } else if (x["den.dist.pop.index"] < county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)]) {
+    return(-1)
+  } else if (x["den.dist.pop.index"] > county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)]) {
+    return(1)
+  } else {
+    return(NA)
+  }
+})
+county.city.list.shortest$rel.missoula <- factor(county.city.list.shortest$rel.missoula, levels=c(-1, 0, 1), labels=c("More Rural than Missoula", "Missoula", "Less Rural than Missoula"))
 ```
 
 ### MERGE DEN-DIST-POP DATA WITH MAPPING INFO
@@ -181,9 +198,6 @@ ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], ae
 ### CONCLUSIONS
 
 ```{r}
-missoula.fips <- "0500000US30063"
-westchester.fips <- "0500000US36119"
-  
 county.w.index <- merge(county.city.list.shortest[c("county.geo.id", "den.dist.pop.index")], county.density[c("GEO.id", "GEO.display.label")], by="county.geo.id", by.y="GEO.id")
 ```
 
@@ -202,4 +216,10 @@ kable(head(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="
 
 ```{r}
 kable(tail(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="markdown", row.names=FALSE)
+```
+
+```{r}
+ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
+  geom_polygon(aes(fill=rel.missoula), colour="black") +
+  coord_equal()
 ```
