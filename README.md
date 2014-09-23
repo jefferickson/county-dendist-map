@@ -1,7 +1,10 @@
+![Den-Dist-Pop Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.png)
+[Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.pdf)
+
 ## County Density/Distance/Population Map
 
 #### Author: Jeff Erickson `<jeff@erick.so>`
-#### Date: 2014-06-22
+#### Date: 2014-06-22 (Updated: 2014-09-23)
 
 ### Motivation
 
@@ -32,7 +35,19 @@ While Version 2 was better than Version 1, I still felt that there wasn't enough
 To improve upon this, I used Waldorf's method of including the standardized logarithm of county population in addition to the other two measures from Version 2. This lead to an improved measure which continues to be "smooth," doesn't have as many outliers, and still can differentiate in places like Montana. 
 
 ![Version 3 of Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v3.png)  
-[Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.v3.pdf)
+
+#### The Final Version
+
+One problem still remained: the distances are "as the crow flies." When measuring rurality, how long it takes to travel matters more than the straight distance to the nearest city. The largest differences between these two measures are likely to be in the more mountainous regions or areas that are very far from a city (since the magnitude of the difference will have a chance to become significant). In order to factor this into the index, I calculated the driving distances using the Google Maps API (for more information, see the [County/City Driving Distance Dataset](https://github.com/jefferickson/county-city-driving-dist)).
+
+Calculating the index with both distance methodologies produces very similar results (all within +/- 0.07). Here is a map showing the counties and their difference between the two methodologies:
+
+![Index Differences](http://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/index.diff.png)
+
+The rural and mountainous state of Montana appears to be hit the most by this change. Here is the final map using these new distances:
+
+![Final Version of the Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.png)  
+[Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.pdf)
 
 ### Conclusion
 
@@ -44,27 +59,27 @@ Missoula County is below the national mean (0.53) at 0.44, and well below Westch
 
 The most rural counties by this metric are:
 
-|FIPS Code      | Den-Dist-Pop Index|County Name                   |
-|:--------------|------------------:|:-----------------------------|
-|0500000US48301 |             0.0000|Loving County, Texas          |
-|0500000US30069 |             0.0331|Petroleum County, Montana     |
-|0500000US30019 |             0.0359|Daniels County, Montana       |
-|0500000US30033 |             0.0410|Garfield County, Montana      |
-|0500000US38007 |             0.0584|Billings County, North Dakota |
-|0500000US30055 |             0.0659|McCone County, Montana        |
+|FIPS Code      | Den-Dist-Pop Index     |County Name               |
+|:--------------|-----------------------:|:-------------------------|
+|0500000US30069 |               0.0000000|Petroleum County, Montana |
+|0500000US48301 |               0.0079498|Loving County, Texas      |
+|0500000US30019 |               0.0455225|Daniels County, Montana   |
+|0500000US30033 |               0.0484002|Garfield County, Montana  |
+|0500000US30071 |               0.0516089|Phillips County, Montana  |
+|0500000US30055 |               0.0681927|McCone County, Montana    |
 
 And the least rural counties are:
 
-|FIPS Code      | Den-Dist-Pop Index|County Name                    |
-|:--------------|------------------:|:------------------------------|
-|0500000US17031 |             0.9626|Cook County, Illinois          |
-|0500000US06037 |             0.9638|Los Angeles County, California |
-|0500000US36005 |             0.9672|Bronx County, New York         |
-|0500000US36081 |             0.9715|Queens County, New York        |
-|0500000US36047 |             0.9956|Kings County, New York         |
-|0500000US36061 |             1.0000|New York County, New York      |
+|FIPS Code      | Den-Dist-Pop Index     |County Name                    |
+|:--------------|-----------------------:|:------------------------------|
+|0500000US17031 |               0.9627766|Cook County, Illinois          |
+|0500000US06037 |               0.9629203|Los Angeles County, California |
+|0500000US36005 |               0.9664776|Bronx County, New York         |
+|0500000US36081 |               0.9697877|Queens County, New York        |
+|0500000US36047 |               0.9955787|Kings County, New York         |
+|0500000US36061 |               1.0000000|New York County, New York      |
 
-Interesting to note is that 4 of the 6 most rural counties are in eastern Montana, and 4 of the 6 least rural counties are in New York City (4 of the 5 boroughs). The metric was able to successfully differentiate between Staten Island (the borough that didn't make the cut) and the 2nd and 3rd largest cities in the country.
+Interesting to note is that 5 of the 6 most rural counties are in eastern Montana, and 4 of the 6 least rural counties are in New York City (4 of the 5 boroughs). The metric was able to successfully differentiate between Staten Island (the borough that didn't make the cut) and the 2nd and 3rd largest cities in the country.
 
 I'll end with a map showing which counties are more and less rural than Missoula County:
 
@@ -72,4 +87,6 @@ I'll end with a map showing which counties are more and less rural than Missoula
 
 ### References
 
-A Continuous Multi-dimensional Measure of Rurality: Moving Beyond Threshold Measures. Waldorf, Brigitte S. 2006. [(link)]( http://purl.umn.edu/21383)
+A Continuous Multi-dimensional Measure of Rurality: Moving Beyond Threshold Measures. Waldorf, Brigitte S. 2006. [(link)](http://purl.umn.edu/21383)
+
+County/City Driving Distance Dataset. Erickson, Jeffrey P. 2014. [(link)](https://github.com/jefferickson/county-city-driving-dist)

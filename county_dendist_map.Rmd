@@ -13,6 +13,7 @@ library(ggmap)
 library(ggplot2)
 library(rgeos)
 library(knitr)
+library(sqldf)
 ```
 
 ### IMPORT DATA
@@ -29,6 +30,9 @@ county.density <- read.csv("datasets/DEC_10_SF1_GCTPH1.CY07_with_ann.csv", heade
 
 #Major city (primary statistical areas) from gen.maj.city.long.lat.Rmd
 maj.city.long.lat <- read.csv("datasets/maj.city.long.lat.csv", header=TRUE)
+
+#Google driving distances from https://github.com/jefferickson/county-city-driving-dist
+county.city.driving.dist <- read.csv("datasets/county-city-driving-dist.csv", header=TRUE, as.is=TRUE)
 ```
 
 ### HELPER FUNCTIONS/DEFINITIONS
@@ -113,6 +117,9 @@ county.pop.center <- county.pop.center[which(! (substr(county.pop.center$GEO_ID,
 #Convert field(s) to numeric. Remove (r[number]) pattern found in some HD01 values.
 county.density$SUBHD0401 <- as.numeric(county.density$SUBHD0401)
 county.density$HD01 <- as.numeric(gsub("\\(r[0-9]*\\)", "", county.density$HD01))
+
+#clean up the driving distance data
+county.city.driving.dist <- county.city.driving.dist[c("fips", "city_id", "driving_distance")]
 ```
 
 ### CALCULATE DISTANCES AND DEN-DIST-POP INDEX
@@ -136,10 +143,11 @@ county.city.list.long$dist <- apply(county.city.list.long[c("county.geo.id", "ci
 #Merge on the county densities/populations
 county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id", "SUBHD0401", "HD01")], by.x="county.geo.id", by.y="GEO.id", all.x=TRUE)
 
-#Dedupe based on shortest distance
-county.city.list.shortest <- do.call(rbind, lapply(split(county.city.list.long, county.city.list.long$county.geo.id), function(x) {
-  return(x[which.min(x$dist), ])
-}))
+#Merge the driving distances
+county.city.list.long <- merge(county.city.list.long, county.city.driving.dist, by.x=c("county.geo.id", "city.id"), by.y=c("fips", "city_id"))
+
+#Find the shortest of the distances (driving and otherwise)
+county.city.list.shortest <- sqldf("select county_geo_id, SUBHD0401, HD01, min(dist) as dist, min(driving_distance) as driving_dist from `county.city.list.long` group by county_geo_id")
 
 #transform density and population with log
 county.city.list.shortest$den.log <- log(county.city.list.shortest$SUBHD0401)
@@ -147,22 +155,28 @@ county.city.list.shortest$pop.log <- log(county.city.list.shortest$HD01)
 
 #let's "flip" the distances so that high values of both density and "distance" mean more urban than rural
 county.city.list.shortest$dist.flip <- -(county.city.list.shortest$dist - (max(county.city.list.shortest$dist) + 1))
+county.city.list.shortest$drive.dist.flip <- -(county.city.list.shortest$driving_dist - (max(county.city.list.shortest$driving_dist) + 1))
 
 #z-score transforms of density and population and distance-flip
 county.city.list.shortest$den.log.z <- z.score(county.city.list.shortest$den.log)
 county.city.list.shortest$pop.log.z <- z.score(county.city.list.shortest$pop.log)
 county.city.list.shortest$dist.flip.z <- z.score(county.city.list.shortest$dist.flip)
+county.city.list.shortest$drive.dist.flip.z <- z.score(county.city.list.shortest$drive.dist.flip)
 
 #create the den-dist-pop index
 county.city.list.shortest$den.dist.pop.index <- link.func.unwgted.avg(county.city.list.shortest[c("den.log.z", "pop.log.z", "dist.flip.z")])
+county.city.list.shortest$den.drivedist.pop.index <- link.func.unwgted.avg(county.city.list.shortest[c("den.log.z", "pop.log.z", "drive.dist.flip.z")])
+
+#what is the difference between the two?
+county.city.list.shortest$index.diff <- county.city.list.shortest$den.dist.pop.index - county.city.list.shortest$den.drivedist.pop.index
 
 #create a {-1, 0, 1} flag for index value relative to Missoula County
 county.city.list.shortest$rel.missoula <- apply(county.city.list.shortest, 1, function(x) {
-  if (x["county.geo.id"] == missoula.fips) {
+  if (x["county_geo_id"] == missoula.fips) {
     return(0)
-  } else if (x["den.dist.pop.index"] < county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)]) {
+  } else if (x["den.drivedist.pop.index"] < county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == missoula.fips)]) {
     return(-1)
-  } else if (x["den.dist.pop.index"] > county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)]) {
+  } else if (x["den.drivedist.pop.index"] > county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == missoula.fips)]) {
     return(1)
   } else {
     return(NA)
@@ -178,12 +192,14 @@ county.city.list.shortest$rel.missoula <- factor(county.city.list.shortest$rel.m
 county.shapes.f <- fortify(county.shapes, region="GEO_ID")
 
 #Merge on our demo data
-county.shapes.f.dendistpop <- merge(county.shapes.f, county.city.list.shortest, by.x="id", by.y="county.geo.id")
+county.shapes.f.dendistpop <- merge(county.shapes.f, county.city.list.shortest, by.x="id", by.y="county_geo_id")
 ```
 
 ### GRAPH THE DENSITY OF THE INDEX
 ```{r}
 ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density()
+
+ggplot(county.city.list.shortest, aes(x=den.drivedist.pop.index)) + geom_density()
 ```
 
 ### MAP IT!
@@ -192,34 +208,57 @@ ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density()
 ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
   geom_polygon(aes(fill=den.dist.pop.index), colour="black") +
   coord_equal() +
-  scale_fill_continuous(low="white", high="blue")
+  scale_fill_gradientn(values=c(0, median(county.shapes.f.dendistpop$den.dist.pop.index), 1), colours=c("red", "white", "green"), rescaler=function(x, ...) x, oob=identity) 
+
+ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
+  geom_polygon(aes(fill=den.drivedist.pop.index), colour="black") +
+  coord_equal() +
+  scale_fill_gradientn("Den-Dist-Pop\nIndex", values=c(0, median(county.shapes.f.dendistpop$den.drivedist.pop.index), 1), colours=c("red", "white", "green"), rescaler=function(x, ...) x, oob=identity) +
+  ggtitle(expression(atop("Density-Distance-Population Index", atop("By County, Compared to Median", "")))) +
+  theme(axis.title=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.grid=element_blank())
+
+ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
+  geom_polygon(aes(fill=index.diff), colour="black") +
+  coord_equal() + 
+  scale_fill_gradientn("Difference", values=c(-0.07, 0, 0.07), colours=c("green", "white", "red"), rescaler=function(x, ...) x, oob=identity) +
+  ggtitle(expression(atop("Driving Distance vs. \"As the Crow Flies\"", atop("Index Difference", "")))) +
+  theme(axis.title=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.grid=element_blank())
 ```
 
 ### CONCLUSIONS
 
 ```{r}
-county.w.index <- merge(county.city.list.shortest[c("county.geo.id", "den.dist.pop.index")], county.density[c("GEO.id", "GEO.display.label")], by="county.geo.id", by.y="GEO.id")
+county.w.index <- merge(county.city.list.shortest[c("county_geo_id", "den.dist.pop.index", "den.drivedist.pop.index")], county.density[c("GEO.id", "GEO.display.label")], by="county_geo_id", by.y="GEO.id")
 ```
 
 ```{r}
-ggplot(county.city.list.shortest, aes(x=den.dist.pop.index)) + geom_density() + 
-  geom_vline(xintercept=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)], linetype="longdash", colour="red") + 
-  geom_text(x=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == missoula.fips)] + 0.02, y=1, label="MISSOULA COUNTY, MT", colour="red", angle=90) +
-  geom_vline(xintercept=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == westchester.fips)], linetype="longdash", colour="red") +
-  geom_text(x=county.city.list.shortest$den.dist.pop.index[which(county.city.list.shortest$county.geo.id == westchester.fips)] + 0.02, y=1.1, label="WESTCHESTER COUNTY, NY", colour="red", angle=90) +
-  labs(title="Density: Den-Dist-Pop Index")
+ggplot(county.city.list.shortest, aes(x=den.drivedist.pop.index)) + 
+  geom_density() + 
+  geom_vline(xintercept=county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == missoula.fips)], linetype="longdash", colour="red") + 
+  geom_text(x=county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == missoula.fips)] + 0.02, y=1, label="MISSOULA COUNTY, MT", colour="red", angle=90) +
+  geom_vline(xintercept=county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == westchester.fips)], linetype="longdash", colour="red") +
+  geom_text(x=county.city.list.shortest$den.drivedist.pop.index[which(county.city.list.shortest$county_geo_id == westchester.fips)] + 0.02, y=1.1, label="WESTCHESTER COUNTY, NY", colour="red", angle=90) +
+  ggtitle(expression(atop("Density-Distance-Population Index", atop("Density Plot", "")))) +
+  scale_x_continuous("Den-Dist-Pop Index") +
+  scale_y_continuous("Density (%)")
 ```
+
 
 ```{r}
 kable(head(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="markdown", row.names=FALSE)
+kable(head(county.w.index[order(county.w.index$den.drivedist.pop.index), ]), format="markdown", row.names=FALSE)
 ```
 
 ```{r}
 kable(tail(county.w.index[order(county.w.index$den.dist.pop.index), ]), format="markdown", row.names=FALSE)
+kable(tail(county.w.index[order(county.w.index$den.drivedist.pop.index), ]), format="markdown", row.names=FALSE)
 ```
 
 ```{r}
 ggplot(county.shapes.f.dendistpop[order(county.shapes.f.dendistpop$order), ], aes(x=long, y=lat, group=group)) + #careful: order matters here
   geom_polygon(aes(fill=rel.missoula), colour="black") +
-  coord_equal()
+  coord_equal() +
+  scale_fill_discrete("Relation to Missoula") +
+  ggtitle(expression(atop("Density-Distance-Population Index", atop("By County, Relation to Missoula County", "")))) +
+  theme(axis.title=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(), panel.grid=element_blank())
 ```
