@@ -38,13 +38,13 @@ To improve upon this, I used Waldorf's method of including the standardized loga
 
 #### The Final Version
 
-One problem still remained: the distances are "as the crow flies." When measuring rurality, how long it takes to travel matters more than the straight distance to the nearest city. The largest differences between these two measures are likely to be in the more mountainous regions or areas that are very far from a city (since the magnitude of the difference will have a chance to become significant). In order to factor this into the index, I calculated the driving distances using the Google Maps API (for more information, see the [County/City Driving Distance Dataset](https://github.com/jefferickson/county-city-driving-dist)).
+One problem still remained: the distances are "as the crow flies." When measuring rurality, how long it takes to travel matters more than the straight distance to the nearest city. The largest differences between these two measures are likely to be in the more mountainous regions (where the roads are not straight) or areas that are very far from a city (since the magnitude of the difference will have a chance to become significant). In order to factor this into the index, I calculated the driving distances using the Google Maps API (for more information, see the [County/City Driving Distance Dataset](https://github.com/jefferickson/county-city-driving-dist)).
 
-Calculating the index with both distance methodologies produces very similar results (all within +/- 0.07). Here is a map showing the counties and their difference between the two methodologies:
+Calculating the index with both distance methodologies produced very similar results (all within +/- 0.07). Here is a map showing the counties and their difference between the two methodologies:
 
-![Index Differences](http://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/index.diff.png)
+![Index Differences](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/index.diff.png)
 
-The rural and mountainous state of Montana appears to be hit the most by this change. Here is the final map using these new distances:
+The rural and mountainous state of Montana appears to be hit the most by this change. The last addition I decided to make was to add a third color to show the relation of the county to the median index. Here is the final map using the new distance methodology as well as the third color:
 
 ![Final Version of the Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.png)  
 [Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.pdf)
