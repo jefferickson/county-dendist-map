@@ -44,7 +44,7 @@ Calculating the index with both distance methodologies produced very similar res
 
 ![Index Differences](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/index.diff.png)
 
-The rural and mountainous state of Montana appears to be hit the most by this change. The last addition I decided to make was to add a third color to show the relation of the county to the median index. Here is the final map using the new distance methodology as well as the third color:
+Areas around the Rocky Mountains and northern Montana (the "High Line") appear to be the hardest hit by this change. The last addition I decided to make was to add a third color to show the relation of each county's index to the median index. Here is the final map using the new distance methodology as well as the third color:
 
 ![Final Version of the Map](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.png)  
 [Large PDF](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.final.pdf)
