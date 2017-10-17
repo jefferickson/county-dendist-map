@@ -147,7 +147,7 @@ county.city.list.long <- merge(county.city.list.long, county.density[c("GEO.id",
 county.city.list.long <- merge(county.city.list.long, county.city.driving.dist, by.x=c("county.geo.id", "city.id"), by.y=c("fips", "city_id"))
 
 #Find the shortest of the distances (driving and otherwise)
-county.city.list.shortest <- sqldf("select county_geo_id, SUBHD0401, HD01, min(dist) as dist, min(driving_distance) as driving_dist from `county.city.list.long` group by county_geo_id")
+county.city.list.shortest <- sqldf("select `county.geo.id` as county_geo_id, SUBHD0401, HD01, min(dist) as dist, min(driving_distance) as driving_dist from `county.city.list.long` group by `county.geo.id`")
 
 #transform density and population with log
 county.city.list.shortest$den.log <- log(county.city.list.shortest$SUBHD0401)
