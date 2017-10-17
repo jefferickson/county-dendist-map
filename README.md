@@ -4,7 +4,7 @@
 ## County Density/Distance/Population Map
 
 #### Author: Jeff Erickson `<jeff@erick.so>`
-#### Date: 2014-06-22 (Updated: 2014-09-23)
+#### Date: 2014-06-22 (Updated: 2017-10-17)
 
 ### Motivation
 
@@ -84,6 +84,10 @@ Interesting to note is that 5 of the 6 most rural counties are in eastern Montan
 I'll end with a map showing which counties are more and less rural than Missoula County:
 
 ![Index relative to Missoula County](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/map_output/map.rel.missoula.png)
+
+### The Final Dataset
+
+The full Density-Distance-Population Index per County dataset can be downloaded [here](https://raw.githubusercontent.com/jefferickson/county-dendist-map/master/datasets/density_distance_population_index_erickson2014.csv).
 
 ### References
 
